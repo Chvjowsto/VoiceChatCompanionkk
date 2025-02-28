@@ -148,12 +148,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const data = await response.json();
       
-      // Filter for Gemini models only
+      // Filter for Gemini models only and remove duplicates
       const geminiModels = data.models
         .filter(model => model.name.includes('gemini'))
         .map(model => model.name.replace('models/', ''));
       
-      return geminiModels;
+      // Remove duplicates and ensure we have latest versions
+      const uniqueModels = [];
+      const modelBaseNames = new Set();
+      
+      // First pass: collect base model names (without version)
+      geminiModels.forEach(model => {
+        const baseName = model.split('-').slice(0, -1).join('-');
+        modelBaseNames.add(baseName);
+      });
+      
+      // Second pass: for each base name, find the latest version
+      modelBaseNames.forEach(baseName => {
+        const matchingModels = geminiModels
+          .filter(model => model.startsWith(baseName))
+          .sort((a, b) => {
+            // Sort by version number (assuming format like xxx-latest, xxx-001, etc.)
+            const versionA = a.split('-').pop();
+            const versionB = b.split('-').pop();
+            // "latest" should always be first
+            if (versionA === 'latest') return -1;
+            if (versionB === 'latest') return 1;
+            return versionB.localeCompare(versionA);
+          });
+        
+        if (matchingModels.length > 0) {
+          uniqueModels.push(matchingModels[0]);
+        }
+      });
+      
+      console.log("Fetched models from Google API:", uniqueModels);
+      return uniqueModels;
     } catch (error) {
       console.error("Error fetching models:", error);
       return GEMINI_MODELS; // Fallback to schema models if API fails
@@ -169,12 +199,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Empty API key provided" });
       }
       
+      console.log("Validating API key...");
+      
       // Test the API key with a simple request
       const testGenAI = new GoogleGenerativeAI(apiKey);
       try {
         // Try to get model info using the provided key
+        console.log("Testing API key with gemini-1.5-flash...");
         const model = testGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         await model.generateContent("Test"); // Simple test prompt
+        console.log("API key validation successful");
         
         // Fetch available models from Google API
         const availableModels = await fetchAvailableModels(apiKey);

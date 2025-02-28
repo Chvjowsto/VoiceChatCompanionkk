@@ -56,6 +56,8 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
       if (data.models && Array.isArray(data.models) && data.models.length > 0) {
         console.log("Models received:", data.models);
         setAvailableModels(data.models);
+        // Save models to localStorage for persistence
+        localStorage.setItem('availableGeminiModels', JSON.stringify(data.models));
       }
     } catch (error) {
       setError(error.message);

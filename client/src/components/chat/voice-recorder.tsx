@@ -35,23 +35,44 @@ export default function VoiceRecorder({
 
   // Fetch available models when component mounts
   useEffect(() => {
-    // Check if user has set an API key by making a simple request
-    fetch('/api/validate-api-key', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey: localStorage.getItem('geminiApiKey') || '' })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.valid && data.models && Array.isArray(data.models)) {
-          setAvailableModels(data.models);
-          //If models are available, set the selected model to the first available model
-          if(data.models.length > 0){
-            setSelectedModel(data.models[0]);
-          }
+    // First try to load models from localStorage
+    const savedModels = localStorage.getItem('availableGeminiModels');
+    if (savedModels) {
+      try {
+        const parsedModels = JSON.parse(savedModels);
+        if (Array.isArray(parsedModels) && parsedModels.length > 0) {
+          console.log("Loading models from localStorage:", parsedModels);
+          setAvailableModels(parsedModels);
+          setSelectedModel(parsedModels[0]);
         }
+      } catch (e) {
+        console.error("Error parsing saved models:", e);
+      }
+    }
+    
+    // Then try to fetch fresh models if an API key exists
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (apiKey) {
+      console.log("Fetching fresh models from API with saved key");
+      fetch('/api/validate-api-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey })
       })
-      .catch(err => console.error('Failed to fetch available models:', err));
+        .then(res => res.json())
+        .then(data => {
+          if (data.valid && data.models && Array.isArray(data.models)) {
+            console.log("Fresh models received from API:", data.models);
+            setAvailableModels(data.models);
+            if(data.models.length > 0){
+              setSelectedModel(data.models[0]);
+            }
+            // Update localStorage with fresh models
+            localStorage.setItem('availableGeminiModels', JSON.stringify(data.models));
+          }
+        })
+        .catch(err => console.error('Failed to fetch available models:', err));
+    }
   }, []);
 
   const startRecording = async () => {
