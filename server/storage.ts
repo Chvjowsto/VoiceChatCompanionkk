@@ -10,19 +10,34 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getMessages(): Promise<Message[]> {
-    return await db.select().from(messages).orderBy(desc(messages.timestamp));
+    try {
+      return await db.select().from(messages).orderBy(desc(messages.timestamp));
+    } catch (error) {
+      console.error("Failed to get messages:", error);
+      return [];
+    }
   }
 
   async addMessage(insertMessage: InsertMessage): Promise<Message> {
-    const [message] = await db
-      .insert(messages)
-      .values(insertMessage)
-      .returning();
-    return message;
+    try {
+      const [message] = await db
+        .insert(messages)
+        .values(insertMessage)
+        .returning();
+      return message;
+    } catch (error) {
+      console.error("Failed to add message:", error);
+      throw error;
+    }
   }
 
   async clearMessages(): Promise<void> {
-    await db.delete(messages);
+    try {
+      await db.delete(messages);
+    } catch (error) {
+      console.error("Failed to clear messages:", error);
+      throw error;
+    }
   }
 }
 
