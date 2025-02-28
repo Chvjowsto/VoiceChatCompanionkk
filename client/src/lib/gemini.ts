@@ -5,10 +5,19 @@ let genAI: GoogleGenerativeAI | null = null;
 let model: GenerativeModel | null = null;
 let chat: ChatSession | null = null;
 
-export function initializeGemini(apiKey: string = process.env.GEMINI_API_KEY || "YOUR-API-KEY") {
-  genAI = new GoogleGenerativeAI(apiKey);
-  model = genAI.getGenerativeModel({ model: "gemini-pro" });
-  chat = null; // Reset chat session
+export function initializeGemini(apiKey: string = process.env.GEMINI_API_KEY || "") {
+  if (!apiKey) {
+    console.error("Gemini API key not provided");
+    return;
+  }
+
+  try {
+    genAI = new GoogleGenerativeAI(apiKey);
+    model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    chat = null; // Reset chat session
+  } catch (error) {
+    console.error("Failed to initialize Gemini:", error);
+  }
 }
 
 export function startNewChat(history: Message[] = []) {
@@ -16,9 +25,8 @@ export function startNewChat(history: Message[] = []) {
     throw new Error("Gemini not initialized. Call initializeGemini first.");
   }
 
-  // Convert our Message type to Gemini's chat history format
   const formattedHistory = history.map(msg => ({
-    role: msg.role,
+    role: msg.role === "assistant" ? "model" : "user",
     parts: [{ text: msg.content }]
   }));
 
@@ -50,8 +58,10 @@ export async function sendMessage(message: string): Promise<string> {
   }
 }
 
-// Initialize Gemini on module load
-initializeGemini();
+// Initialize Gemini on module load if API key is available
+if (process.env.GEMINI_API_KEY) {
+  initializeGemini();
+}
 
 export default {
   initializeGemini,
