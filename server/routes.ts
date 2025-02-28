@@ -5,9 +5,11 @@ import { insertMessageSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ContextManager } from "./services/contextManager";
 
-// Initialize Gemini with proper error handling
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const contextManager = new ContextManager(process.env.GEMINI_API_KEY || "");
+// Initialize with environment variable, can be overridden via API
+let GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+let contextManager = new ContextManager(GEMINI_API_KEY);
+let genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages", async (_req, res) => {
@@ -93,6 +95,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error clearing messages:", error);
       res.status(500).json({ error: "Failed to clear messages" });
+    }
+  });
+
+  app.post("/api/apikey", async (req, res) => {
+    try {
+      const apiKey = req.body.apiKey;
+      //  Placeholder for API key validation.  Replace with actual validation logic.
+      if (apiKey && apiKey.length > 0) { //Basic check for non-empty key
+          GEMINI_API_KEY = apiKey;
+          contextManager = new ContextManager(GEMINI_API_KEY);
+          genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+          res.json({ message: "API key updated successfully." });
+      } else {
+        res.status(400).json({ error: "Invalid API key" });
+      }
+    } catch (error) {
+      console.error("Error updating API key:", error);
+      res.status(500).json({ error: "Failed to update API key" });
     }
   });
 

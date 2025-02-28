@@ -9,6 +9,58 @@ import MessageList from "@/components/chat/message-list";
 import VoiceRecorder from "@/components/chat/voice-recorder";
 import { useToast } from "@/hooks/use-toast";
 
+// Added ApiKeyDialog component - placeholder implementation
+const ApiKeyDialog = ({ onApiKeySet }) => {
+  const [apiKey, setApiKey] = useState("");
+  const [isValid, setIsValid] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleApiKeyChange = (e) => {
+    setApiKey(e.target.value);
+    setIsValid(false);
+    setError("");
+  };
+
+  const handleValidateApiKey = async () => {
+    try {
+      const response = await fetch("/api/validate-api-key", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ apiKey }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Invalid API key");
+      }
+
+      setIsValid(true);
+      onApiKeySet(apiKey);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={apiKey}
+        onChange={handleApiKeyChange}
+        placeholder="Enter Gemini API Key"
+      />
+      <button onClick={handleValidateApiKey} disabled={!apiKey}>
+        Validate
+      </button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {isValid && <p>API Key Validated!</p>}
+    </div>
+  );
+};
+
+
 export default function Chat() {
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
@@ -74,6 +126,12 @@ export default function Chat() {
               <Trash2 className="h-4 w-4 mr-2" />
               Clear
             </Button>
+            <ApiKeyDialog 
+              onApiKeySet={(apiKey) => {
+                console.log("API key set successfully:", apiKey);
+                // Optionally refresh messages or update UI
+              }} 
+            />
           </div>
         </div>
       </header>
