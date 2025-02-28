@@ -9,6 +9,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 
 interface MessageListProps {
@@ -42,6 +43,7 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-4">
       {messages.map((message, index) => (
         <motion.div
@@ -108,5 +110,6 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
         </motion.div>
       ))}
     </div>
+    </TooltipProvider>
   );
 }

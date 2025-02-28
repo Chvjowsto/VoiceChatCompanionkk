@@ -46,11 +46,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (parsed.data.role === "user") {
         try {
           // Send the message to Gemini
-          const result = await genAI.generateContent([
-            {
-              text: `Context: ${context.summary}\nCurrent topics: ${context.topics.join(", ")}\n\nUser message: ${parsed.data.content}`
-            }
-          ]);
+          const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+          const prompt = `Context: ${context.summary}\nCurrent topics: ${context.topics.join(", ")}\n\nUser message: ${parsed.data.content}`;
+          const result = await model.generateContent(prompt);
           const response = await result.response;
           const responseText = response.text();
 
