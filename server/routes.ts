@@ -44,26 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (parsed.data.role === "user") {
         try {
-          const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-          // Get pruned context for the chat
-          const prunedMessages = contextManager.pruneContext(allMessages);
-
-          const chat = model.startChat({
-            history: prunedMessages.map(m => ({
-              role: m.role === "assistant" ? "model" : "user",
-              parts: [{ text: m.content }]
-            })),
-            generationConfig: {
-              maxOutputTokens: 2048,
-              temperature: 0.7,
-              topP: 0.8,
-              topK: 40
-            }
-          });
-
-          const result = await chat.sendMessage([
-            { 
+          // Send the message to Gemini
+          const result = await genAI.generateContent([
+            {
               text: `Context: ${context.summary}\nCurrent topics: ${context.topics.join(", ")}\n\nUser message: ${parsed.data.content}`
             }
           ]);
@@ -76,19 +59,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             [...allMessages, message]
           );
 
+          // Save the assistant's response
           await storage.addMessage({
             content: responseText,
             role: "assistant",
             audioUrl: null,
             context: assistantContext
           });
+
+          // Return both messages
+          res.json(message);
         } catch (aiError) {
           console.error("Gemini API error:", aiError);
           return res.status(500).json({ error: "Failed to get AI response" });
         }
+      } else {
+        res.json(message);
       }
-
-      res.json(message);
     } catch (error) {
       console.error("Error processing message:", error);
       res.status(500).json({ error: "Failed to process message" });
