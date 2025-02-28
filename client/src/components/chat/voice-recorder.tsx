@@ -41,20 +41,20 @@ export default function VoiceRecorder({
 
   return (
     <Button
-      className="w-full h-16"
+      className="w-full h-14 md:h-16 rounded-full shadow-lg hover:shadow-xl transition-shadow"
       variant={isRecording ? "destructive" : "default"}
       onClick={isRecording ? handleStopRecording : handleStartRecording}
       disabled={disabled}
     >
       {isRecording ? (
         <>
-          <Square className="w-6 h-6 mr-2" />
-          Stop Recording
+          <Square className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+          <span className="text-sm md:text-base">Stop Recording</span>
         </>
       ) : (
         <>
-          <Mic className="w-6 h-6 mr-2" />
-          Hold to Speak
+          <Mic className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+          <span className="text-sm md:text-base">Hold to Speak</span>
         </>
       )}
     </Button>
