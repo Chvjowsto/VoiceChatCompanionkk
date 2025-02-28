@@ -37,7 +37,7 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
     setAvailableModels([]); //Reset available models before new validation
 
     try {
-      const response = await fetch('/api/validate-key', {
+      const response = await fetch('/api/validate-api-key', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

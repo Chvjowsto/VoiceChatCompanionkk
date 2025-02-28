@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMessageSchema } from "@shared/schema";
+import { insertMessageSchema, GEMINI_MODELS } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ContextManager } from "./services/contextManager";
 
