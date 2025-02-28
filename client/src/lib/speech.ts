@@ -1,3 +1,35 @@
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 let recognition: SpeechRecognition | null = null;
 let synthesis: SpeechSynthesis | null = null;
 
@@ -19,7 +51,7 @@ export function startRecording(onTranscript: (text: string) => void): Promise<vo
 
     let finalTranscript = "";
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -36,7 +68,7 @@ export function startRecording(onTranscript: (text: string) => void): Promise<vo
       }
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       reject(event.error);
     };
 
