@@ -48,31 +48,17 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Invalid API key");
+        throw new Error(data.error || "Failed to validate API key");
       }
 
       setIsValid(true);
-      setAvailableModels(data.models || []);
-
-      // Also update the API key for the application (assuming /api/apikey endpoint exists)
-      const updateResponse = await fetch("/api/apikey", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ apiKey }),
-      });
-
-      if (!updateResponse.ok) {
-        console.error("Failed to set API key in application");
-        //Consider handling this failure more gracefully, perhaps by setting isValid to false
+      // Update available models with the ones returned from the API
+      if (data.models && Array.isArray(data.models) && data.models.length > 0) {
+        console.log("Models received:", data.models);
+        setAvailableModels(data.models);
       }
-
-      onApiKeySet(apiKey);
-      // Close dialog after successful validation
-      setTimeout(() => setIsOpen(false), 1500);
-    } catch (err) {
-      setError(err.message);
+    } catch (error) {
+      setError(error.message);
       setIsValid(false);
     } finally {
       setIsValidating(false);

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 // Add speech recognition typing
@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import ModelSelector from './model-selector';
-import { type GeminiModel, GEMINI_MODELS } from '@shared/schema';
+// import { type GeminiModel, GEMINI_MODELS } from '@shared/schema'; // Removed since models are fetched dynamically
 
 export default function VoiceRecorder({ 
   onRecordingStateChange, 
@@ -27,10 +27,32 @@ export default function VoiceRecorder({
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [text, setText] = useState('');
-  const [selectedModel, setSelectedModel] = useState<GeminiModel>("gemini-1.5-pro");
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-1.5-pro-latest");
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const { toast } = useToast();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Fetch available models when component mounts
+  useEffect(() => {
+    // Check if user has set an API key by making a simple request
+    fetch('/api/validate-api-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: localStorage.getItem('geminiApiKey') || '' })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.valid && data.models && Array.isArray(data.models)) {
+          setAvailableModels(data.models);
+          //If models are available, set the selected model to the first available model
+          if(data.models.length > 0){
+            setSelectedModel(data.models[0]);
+          }
+        }
+      })
+      .catch(err => console.error('Failed to fetch available models:', err));
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -47,12 +69,12 @@ export default function VoiceRecorder({
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        
+
         try {
           // Use the Web Speech API for transcription
           const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
           recognition.lang = 'en-US';
-          
+
           recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
             if (transcript.trim()) {
@@ -65,7 +87,7 @@ export default function VoiceRecorder({
               });
             }
           };
-          
+
           recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
             toast({
@@ -74,12 +96,12 @@ export default function VoiceRecorder({
               variant: 'destructive',
             });
           };
-          
+
           // Start recognition with the recorded audio
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
           audio.onended = () => recognition.stop();
-          
+
           recognition.start();
           audio.play();
         } catch (error) {
@@ -110,11 +132,11 @@ export default function VoiceRecorder({
       // First update UI to show stopped state
       setIsRecording(false);
       onRecordingStateChange(false);
-      
+
       // Then stop recording - this will trigger the onstop event
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      
+
       // Show loading indicator 
       toast({
         title: 'Processing',
@@ -153,14 +175,14 @@ export default function VoiceRecorder({
     sendMessage.mutate();
   };
 
-  const handleModelChange = (model: GeminiModel) => {
+  const handleModelChange = (model: string) => {
     setSelectedModel(model);
   };
 
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t flex flex-col gap-2 bg-background/80 backdrop-blur-md rounded-lg shadow-lg">
       <div className="flex items-center justify-between mb-2">
-        <ModelSelector value={selectedModel} onChange={handleModelChange} />
+        <ModelSelector value={selectedModel} onChange={handleModelChange} availableModels={availableModels} />
         {sendMessage.isError && (
           <span className="text-xs text-destructive">Try another model, current one might be rate limited</span>
         )}

@@ -113,6 +113,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const model = testGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         await model.generateContent("Test"); // Simple test prompt
         
+        // Fetch available models from Google API
+        const availableModels = await fetchAvailableModels(apiKey);
+        
         // If successful, update the API key
         GEMINI_API_KEY = apiKey;
         contextManager = new ContextManager(GEMINI_API_KEY);
@@ -121,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Return success with available models
         res.json({ 
           message: "API key validated and updated successfully.",
-          models: GEMINI_MODELS
+          models: availableModels
         });
       } catch (apiError) {
         console.error("API key validation failed:", apiError);
@@ -136,6 +139,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Function to fetch available Gemini models
+  async function fetchAvailableModels(apiKey) {
+    try {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch models: ${response.statusText}`);
+      }
+      const data = await response.json();
+      
+      // Filter for Gemini models only
+      const geminiModels = data.models
+        .filter(model => model.name.includes('gemini'))
+        .map(model => model.name.replace('models/', ''));
+      
+      return geminiModels;
+    } catch (error) {
+      console.error("Error fetching models:", error);
+      return GEMINI_MODELS; // Fallback to schema models if API fails
+    }
+  }
+
   // Add endpoint to validate API key without setting it
   app.post("/api/validate-api-key", async (req, res) => {
     try {
@@ -152,11 +176,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const model = testGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         await model.generateContent("Test"); // Simple test prompt
         
+        // Fetch available models from Google API
+        const availableModels = await fetchAvailableModels(apiKey);
+        
         // Return success with available models
         res.json({ 
           valid: true,
           message: "API key is valid",
-          models: GEMINI_MODELS
+          models: availableModels
         });
       } catch (apiError) {
         console.error("API key validation failed:", apiError);

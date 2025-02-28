@@ -7,17 +7,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GEMINI_MODELS, type GeminiModel } from "@shared/schema";
+import { GEMINI_MODELS } from "@shared/schema";
 
 interface ModelSelectorProps {
-  value: GeminiModel;
-  onChange: (model: GeminiModel) => void;
+  value: string;
+  onChange: (model: string) => void;
+  availableModels?: string[];
 }
 
-export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
+export default function ModelSelector({ value, onChange, availableModels }: ModelSelectorProps) {
   const handleChange = (newModel: string) => {
-    onChange(newModel as GeminiModel);
+    onChange(newModel);
   };
+
+  // Use available models if provided, otherwise fall back to schema models
+  const models = availableModels && availableModels.length > 0 
+    ? availableModels 
+    : GEMINI_MODELS;
 
   return (
     <div className="flex items-center space-x-2">
@@ -27,7 +33,7 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
           <SelectValue placeholder="Select model" />
         </SelectTrigger>
         <SelectContent>
-          {GEMINI_MODELS.map((model) => (
+          {models.map((model) => (
             <SelectItem key={model} value={model}>
               {model}
             </SelectItem>
