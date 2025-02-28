@@ -216,9 +216,21 @@ export default function VoiceRecorder({
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage.mutate({content: text, role: "user", model: selectedModel});
+    if (text.trim()) {
+      try {
+        setText(""); // Clear input immediately for better UX
+        await sendMessage.mutateAsync({content: text, role: "user", model: selectedModel});
+      } catch (error) {
+        console.error("Error sending message:", error);
+        toast({
+          title: "Error sending message",
+          description: "Failed to send message. API might be rate limited or try another model.",
+          variant: "destructive"
+        });
+      }
+    }
   };
 
   const handleModelChange = (model: string) => {

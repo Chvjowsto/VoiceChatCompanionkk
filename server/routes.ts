@@ -83,11 +83,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const responseText = response.text();
 
           // Build context for the assistant's response using the same model
-          const assistantContext = await contextManager.buildMessageContext(
-            responseText,
-            [...allMessages, userMessage],
-            modelName
-          );
+          let assistantContext;
+          try {
+            assistantContext = await contextManager.buildMessageContext(
+              responseText,
+              [...allMessages, userMessage],
+              modelName
+            );
+          } catch (contextError) {
+            console.error("Error building assistant context:", contextError);
+            assistantContext = { summary: "", topics: [], relevantIds: [], importance: 1 };
+          }
 
           // Save the assistant's response
           const assistantMessage = await storage.addMessage({
@@ -95,7 +101,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: "assistant",
             audioUrl: null,
             model: modelName, // Store which model was used
-            context: assistantContext
+            context: assistantContext,
+            config: parsed.data.config // Pass the configuration
           });
 
           // Return both messages

@@ -68,6 +68,7 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-sm font-medium mb-1 opacity-75">
                       <span>{message.role === "assistant" ? "Gemini" : "You"}</span>
+                      <span className="text-xs opacity-50">{message.model || "unknown model"}</span>
                       {message.context && (
                         <Tooltip>
                           <TooltipTrigger asChild>
