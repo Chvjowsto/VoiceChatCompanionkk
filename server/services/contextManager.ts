@@ -19,7 +19,7 @@ export class ContextManager {
       const prompt = `Summarize the following conversation in a concise way that captures the key points and context:
       ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`;
 
-      const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+      const model = this.genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text();
@@ -37,7 +37,7 @@ export class ContextManager {
       Rate the relevance of each previous message (0-1):
       ${messages.map(m => `${m.id}: ${m.content}`).join('\n')}`;
 
-      const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+      const model = this.genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const relevanceScores = this.parseRelevanceScores(response.text());
@@ -65,7 +65,7 @@ export class ContextManager {
   async extractTopics(content: string): Promise<string[]> {
     try {
       const prompt = `Extract key topics from this message as a comma-separated list: "${content}"`;
-      const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+      const model = this.genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text().split(',').map(topic => topic.trim());
