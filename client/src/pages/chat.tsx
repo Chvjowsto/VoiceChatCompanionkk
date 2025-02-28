@@ -14,7 +14,8 @@ export default function Chat() {
   const [isRecording, setIsRecording] = useState(false);
 
   const { data: messages, isLoading } = useQuery({
-    queryKey: ["/api/messages"]
+    queryKey: ["/api/messages"],
+    refetchInterval: 1000 // Poll every second to ensure we get updates
   });
 
   const clearMutation = useMutation({
@@ -32,15 +33,23 @@ export default function Chat() {
 
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
-      await apiRequest("POST", "/api/messages", {
+      const response = await apiRequest("POST", "/api/messages", {
         content,
         role: "user",
         audioUrl: null,
         context: null
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   });
 

@@ -37,11 +37,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Add message with context
-      const message = await storage.addMessage({
+      const userMessage = await storage.addMessage({
         ...parsed.data,
         context
       });
 
+      // If it's a user message, generate AI response
       if (parsed.data.role === "user") {
         try {
           // Send the message to Gemini
@@ -56,11 +57,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Build context for the assistant's response
           const assistantContext = await contextManager.buildMessageContext(
             responseText,
-            [...allMessages, message]
+            [...allMessages, userMessage]
           );
 
           // Save the assistant's response
-          await storage.addMessage({
+          const assistantMessage = await storage.addMessage({
             content: responseText,
             role: "assistant",
             audioUrl: null,
@@ -68,13 +69,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           // Return both messages
-          res.json(message);
+          res.json([userMessage, assistantMessage]);
         } catch (aiError) {
           console.error("Gemini API error:", aiError);
           return res.status(500).json({ error: "Failed to get AI response" });
         }
       } else {
-        res.json(message);
+        res.json([userMessage]);
       }
     } catch (error) {
       console.error("Error processing message:", error);
