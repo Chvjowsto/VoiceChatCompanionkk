@@ -80,7 +80,7 @@ export default function Chat() {
 
       {/* Main Content with modern styling */}
       <main className="flex-1 flex flex-col container max-w-screen-md mx-auto w-full p-4 md:p-6 gap-4">
-        <div className="flex-1 rounded-lg bg-background/40 backdrop-blur-sm p-4 md:p-6 shadow-xl ring-1 ring-black/5">
+        <div className="flex-1 rounded-lg bg-background/40 backdrop-blur-sm p-4 md:p-6 pb-24 shadow-xl ring-1 ring-black/5 overflow-y-auto">
           <MessageList 
             messages={messages || []} 
             isLoading={isLoading} 

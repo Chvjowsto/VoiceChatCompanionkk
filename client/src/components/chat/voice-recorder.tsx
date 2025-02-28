@@ -158,7 +158,7 @@ export default function VoiceRecorder({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border-t flex flex-col gap-2">
+    <form onSubmit={handleSubmit} className="p-4 border-t flex flex-col gap-2 bg-background/80 backdrop-blur-md rounded-lg shadow-lg">
       <div className="flex items-center justify-between mb-2">
         <ModelSelector value={selectedModel} onChange={handleModelChange} />
         {sendMessage.isError && (
