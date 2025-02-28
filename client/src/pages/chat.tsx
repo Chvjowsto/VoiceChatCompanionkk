@@ -92,6 +92,11 @@ export default function Chat() {
           <VoiceRecorder
             isRecording={isRecording}
             setIsRecording={setIsRecording}
+            onRecordingStateChange={(isRecording) => {
+              // Handle recording state changes
+              console.log("Recording state changed:", isRecording);
+              setIsRecording(isRecording); // Update the state
+            }}
             onTranscript={(text) => sendMessage.mutate(text)}
             disabled={sendMessage.isPending}
           />
