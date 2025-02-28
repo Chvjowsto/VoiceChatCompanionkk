@@ -1,3 +1,4 @@
+
 import { pgTable, text, serial, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -11,7 +12,7 @@ export const messages = pgTable("messages", {
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   audioUrl: text("audio_url"),
-  model: text("model", { enum: GEMINI_MODELS }).optional(), // Added model field
+  model: text("model").default(GEMINI_MODELS[0]), // Fixed model field definition
   context: jsonb("context").default({
     summary: "",
     relevantIds: [],
