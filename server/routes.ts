@@ -31,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allMessages = await storage.getMessages();
 
       // Build context for the new message with selected model
-      const modelName = parsed.data.model || "gemini-1.5-pro";
+      const modelName = parsed.data.model || "gemini-1.5-pro-latest";
       const context = await contextManager.buildMessageContext(
         parsed.data.content,
         allMessages,
@@ -48,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (parsed.data.role === "user") {
         try {
           // Send the message to Gemini with the selected model or default
-          const modelName = parsed.data.model || "gemini-1.5-pro";
+          const modelName = parsed.data.model || "gemini-1.5-pro-latest";
           const model = genAI.getGenerativeModel({ model: modelName });
           const prompt = `Context: ${context.summary}\nCurrent topics: ${context.topics.join(", ")}\n\nUser message: ${parsed.data.content}`;
           const result = await model.generateContent(prompt);
