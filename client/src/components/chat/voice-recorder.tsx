@@ -49,7 +49,7 @@ export default function VoiceRecorder({
         console.error("Error parsing saved models:", e);
       }
     }
-    
+
     // Then try to fetch fresh models if an API key exists
     const apiKey = localStorage.getItem('geminiApiKey');
     if (apiKey) {
@@ -167,33 +167,58 @@ export default function VoiceRecorder({
   };
 
   const sendMessage = useMutation({
-    mutationFn: async () => {
-      if (!text.trim()) return;
+    mutationFn: async ({content, role, model}: {content: string, role: string, model: string}) => {
+      if (!content.trim()) return;
 
-      // Send message to API with selected model
-      await apiRequest('POST', '/api/messages', {
-        content: text,
-        role: 'user',
-        model: selectedModel,
-        audioUrl: null
+      // Show sending indicator
+      toast({
+        title: "Sending message",
+        description: `Using model: ${model}`,
       });
-      setText('');
+
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: content,
+          role: role,
+          model: model,
+          //config: chatConfig // Pass the config to the API -  Removed as chatConfig is not defined in the original code.
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error (${response.status}):`, errorText);
+
+        // Suggest model change if rate limited
+        if (response.status === 429 || errorText.includes("quota") || errorText.includes("rate")) {
+          toast({
+            title: "API Rate Limited",
+            description: "Try switching to another model or wait a moment",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        throw new Error(errorText || response.statusText);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: 'Failed to send message. The API might be rate limited, try another model.',
-        variant: 'destructive',
+        title: "Failed to send message",
+        description: error.message || "Check console for details",
+        variant: "destructive",
       });
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage.mutate();
+    sendMessage.mutate({content: text, role: "user", model: selectedModel});
   };
 
   const handleModelChange = (model: string) => {

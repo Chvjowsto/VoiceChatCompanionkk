@@ -33,8 +33,10 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
 
     setIsValidating(true);
     setError("");
-    setIsValid(null); //Added to handle validation state
-    setAvailableModels([]); //Reset available models before new validation
+    setIsValid(null); 
+    setAvailableModels([]); 
+
+    console.log("Validating API key:", apiKey.substring(0, 5) + "...");
 
     try {
       const response = await fetch('/api/validate-api-key', {
@@ -48,19 +50,28 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to validate API key");
+        console.error("API key validation failed:", data);
+        throw new Error(data.error || data.details || "Failed to validate API key");
       }
 
       setIsValid(true);
-      // Update available models with the ones returned from the API
-      if (data.models && Array.isArray(data.models) && data.models.length > 0) {
-        console.log("Models received:", data.models);
-        setAvailableModels(data.models);
-        // Save models to localStorage for persistence
-        localStorage.setItem('availableGeminiModels', JSON.stringify(data.models));
+
+      if (data.models && Array.isArray(data.models)) {
+        if (data.models.length > 0) {
+          console.log("Models received:", data.models);
+          setAvailableModels(data.models);
+          localStorage.setItem('availableGeminiModels', JSON.stringify(data.models));
+        } else {
+          console.warn("No models returned from API");
+          setError("No models were returned. Please try again or use a different API key.");
+        }
+      } else {
+        console.warn("Invalid models data structure:", data);
+        setError("Received invalid model data. Please try again.");
       }
     } catch (error) {
-      setError(error.message);
+      console.error("API key validation error:", error);
+      setError(error.message || "Failed to validate API key. Please check your internet connection and try again.");
       setIsValid(false);
     } finally {
       setIsValidating(false);

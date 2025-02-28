@@ -167,47 +167,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Function to fetch available Gemini models
   async function fetchAvailableModels(apiKey) {
     try {
+      console.log("Fetching models from Google API...");
       const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey);
+      
       if (!response.ok) {
+        console.error(`Failed to fetch models: ${response.status} ${response.statusText}`);
         throw new Error(`Failed to fetch models: ${response.statusText}`);
       }
+      
       const data = await response.json();
+      console.log("Raw model data:", data);
+      
+      if (!data.models || !Array.isArray(data.models)) {
+        console.error("Invalid model data structure:", data);
+        return GEMINI_MODELS;
+      }
 
-      // Filter for Gemini models only and remove duplicates
-      const geminiModels = data.models
-        .filter(model => model.name.includes('gemini'))
-        .map(model => model.name.replace('models/', ''));
-
-      // Remove duplicates and ensure we have latest versions
-      const uniqueModels = [];
-      const modelBaseNames = new Set();
-
-      // First pass: collect base model names (without version)
-      geminiModels.forEach(model => {
-        const baseName = model.split('-').slice(0, -1).join('-');
-        modelBaseNames.add(baseName);
+      // Get all available Gemini models with their version info
+      const allGeminiModels = data.models
+        .filter(model => model.name && model.name.includes('gemini'))
+        .map(model => {
+          const fullName = model.name.replace('models/', '');
+          const parts = fullName.split('-');
+          const version = parts[parts.length - 1];
+          // Extract base name without version number
+          const baseName = parts.slice(0, -1).join('-');
+          
+          return {
+            fullName,
+            baseName,
+            version,
+            // Parse numeric versions for comparison (like 001, 002, etc)
+            numericVersion: !isNaN(version) ? parseInt(version, 10) : 0,
+            // 'latest' should always be prioritized
+            isLatest: version === 'latest',
+            // Include display name if available
+            displayName: model.displayName || fullName
+          };
+        });
+      
+      console.log("Processed Gemini models:", allGeminiModels);
+      
+      // Group models by base name
+      const modelsByBaseName = {};
+      allGeminiModels.forEach(model => {
+        if (!modelsByBaseName[model.baseName]) {
+          modelsByBaseName[model.baseName] = [];
+        }
+        modelsByBaseName[model.baseName].push(model);
       });
-
-      // Second pass: for each base name, find the latest version
-      modelBaseNames.forEach(baseName => {
-        const matchingModels = geminiModels
-          .filter(model => model.startsWith(baseName))
-          .sort((a, b) => {
-            // Sort by version number (assuming format like xxx-latest, xxx-001, etc.)
-            const versionA = a.split('-').pop();
-            const versionB = b.split('-').pop();
-            // "latest" should always be first
-            if (versionA === 'latest') return -1;
-            if (versionB === 'latest') return 1;
-            return versionB.localeCompare(versionA);
-          });
-
-        if (matchingModels.length > 0) {
-          uniqueModels.push(matchingModels[0]);
+      
+      // For each base name, select the best version (prioritize 'latest', then highest numeric version)
+      const uniqueModels = [];
+      Object.values(modelsByBaseName).forEach(models => {
+        // Sort by priority: latest first, then by numeric version (descending)
+        const sortedModels = models.sort((a, b) => {
+          if (a.isLatest && !b.isLatest) return -1;
+          if (!a.isLatest && b.isLatest) return 1;
+          return b.numericVersion - a.numericVersion;
+        });
+        
+        if (sortedModels.length > 0) {
+          uniqueModels.push(sortedModels[0].fullName);
         }
       });
-
-      console.log("Fetched models from Google API:", uniqueModels);
+      
+      console.log("Final unique models:", uniqueModels);
+      
+      // If no models were found (unlikely), fall back to schema-defined models
+      if (uniqueModels.length === 0) {
+        console.warn("No models found, falling back to schema models");
+        return GEMINI_MODELS;
+      }
+      
       return uniqueModels;
     } catch (error) {
       console.error("Error fetching models:", error);

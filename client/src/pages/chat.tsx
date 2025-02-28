@@ -148,15 +148,8 @@ export default function Chat() {
 
       {/* Main Content with modern styling */}
       <main className="flex-1 flex flex-col container max-w-screen-md mx-auto w-full p-4 md:p-6 gap-4">
-        <div className="flex-1 rounded-lg bg-background/40 backdrop-blur-sm p-4 md:p-6 pb-24 shadow-xl ring-1 ring-black/5 overflow-y-auto">
-          <MessageList 
-            messages={messages || []} 
-            isLoading={isLoading} 
-          />
-        </div>
-
         {/* Voice Recorder with floating effect */}
-        <div className="sticky bottom-4 w-full px-4 md:px-0 animate-fade-up">
+        <div className="w-full px-4 md:px-0 mb-4">
           <VoiceRecorder
             isRecording={isRecording}
             setIsRecording={setIsRecording}
@@ -165,8 +158,27 @@ export default function Chat() {
               console.log("Recording state changed:", isRecording);
               setIsRecording(isRecording); // Update the state
             }}
-            onTranscript={(text) => sendMessage.mutate(text)}
+            onTranscript={(text) => {
+              try {
+                sendMessage.mutate(text);
+              } catch (error) {
+                console.error("Error sending message:", error);
+                toast({
+                  title: "Failed to send message",
+                  description: "API might be rate limited. Try another model or wait a moment.",
+                  variant: "destructive",
+                });
+              }
+            }}
             disabled={sendMessage.isPending}
+          />
+        </div>
+        
+        {/* Chat messages */}
+        <div className="flex-1 rounded-lg bg-background/40 backdrop-blur-sm p-4 md:p-6 shadow-xl ring-1 ring-black/5 overflow-y-auto">
+          <MessageList 
+            messages={messages || []} 
+            isLoading={isLoading} 
           />
         </div>
       </main>
