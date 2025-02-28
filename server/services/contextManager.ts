@@ -7,9 +7,11 @@ const RELEVANCE_THRESHOLD = 0.7;
 
 export class ContextManager {
   private genAI: GoogleGenerativeAI;
+  private apiKey: string;
 
   constructor(apiKey: string) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.apiKey = apiKey;
+    this.genAI = new GoogleGenerativeAI(this.apiKey);
   }
 
   async summarizeContext(messages: Message[], preferredModel?: string): Promise<string> {
@@ -22,7 +24,7 @@ export class ContextManager {
       // Try to use the last model used in the conversation, or the preferred one, or fall back to default
       const lastMessage = messages[messages.length - 1];
       const modelName = preferredModel || lastMessage.model || "gemini-1.5-pro";
-      
+
       const model = this.genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -114,5 +116,19 @@ export class ContextManager {
       .sort((a, b) => ((b.context?.importance || 0) - (a.context?.importance || 0)))
       .slice(0, MAX_CONTEXT_MESSAGES)
       .sort((a, b) => a.id - b.id);
+  }
+
+  // Update API key and reinitialize the client
+  public updateApiKey(apiKey: string): void {
+    this.apiKey = apiKey;
+    this.genAI = new GoogleGenerativeAI(this.apiKey);
+    console.log("Context manager API key updated");
+  }
+
+  // Get current API key status
+  public getApiKeyStatus(): { hasKey: boolean } {
+    return { 
+      hasKey: !!this.apiKey && this.apiKey.length > 0
+    };
   }
 }

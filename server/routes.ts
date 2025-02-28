@@ -101,18 +101,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/apikey", async (req, res) => {
     try {
       const apiKey = req.body.apiKey;
-      //  Placeholder for API key validation.  Replace with actual validation logic.
-      if (apiKey && apiKey.length > 0) { //Basic check for non-empty key
-          GEMINI_API_KEY = apiKey;
-          contextManager = new ContextManager(GEMINI_API_KEY);
-          genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-          res.json({ message: "API key updated successfully." });
-      } else {
-        res.status(400).json({ error: "Invalid API key" });
+      
+      if (!apiKey || apiKey.length === 0) {
+        return res.status(400).json({ error: "Empty API key provided" });
+      }
+      
+      // Test the API key with a simple request
+      const testGenAI = new GoogleGenerativeAI(apiKey);
+      try {
+        // Try to get model info using the provided key
+        const model = testGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        await model.generateContent("Test"); // Simple test prompt
+        
+        // If successful, update the API key
+        GEMINI_API_KEY = apiKey;
+        contextManager = new ContextManager(GEMINI_API_KEY);
+        genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        
+        // Return success with available models
+        res.json({ 
+          message: "API key validated and updated successfully.",
+          models: GEMINI_MODELS
+        });
+      } catch (apiError) {
+        console.error("API key validation failed:", apiError);
+        return res.status(401).json({ 
+          error: "Invalid API key or API quota exceeded",
+          details: apiError.message
+        });
       }
     } catch (error) {
       console.error("Error updating API key:", error);
       res.status(500).json({ error: "Failed to update API key" });
+    }
+  });
+  
+  // Add endpoint to validate API key without setting it
+  app.post("/api/validate-api-key", async (req, res) => {
+    try {
+      const apiKey = req.body.apiKey;
+      
+      if (!apiKey || apiKey.length === 0) {
+        return res.status(400).json({ error: "Empty API key provided" });
+      }
+      
+      // Test the API key with a simple request
+      const testGenAI = new GoogleGenerativeAI(apiKey);
+      try {
+        // Try to get model info using the provided key
+        const model = testGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        await model.generateContent("Test"); // Simple test prompt
+        
+        // Return success with available models
+        res.json({ 
+          valid: true,
+          message: "API key is valid",
+          models: GEMINI_MODELS
+        });
+      } catch (apiError) {
+        console.error("API key validation failed:", apiError);
+        return res.status(401).json({ 
+          valid: false,
+          error: "Invalid API key or API quota exceeded",
+          details: apiError.message
+        });
+      }
+    } catch (error) {
+      console.error("Error validating API key:", error);
+      res.status(500).json({ 
+        valid: false,
+        error: "Failed to validate API key" 
+      });
     }
   });
 

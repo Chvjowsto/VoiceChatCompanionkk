@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,16 +19,23 @@ interface ApiKeyDialogProps {
 
 export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
   const [apiKey, setApiKey] = useState("");
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
   const validateApiKey = async () => {
-    if (!apiKey.trim()) return;
-    
+    if (!apiKey.trim()) {
+      setError("API key cannot be empty");
+      return;
+    }
+
     setIsValidating(true);
-    setIsValid(null);
-    
+    setError("");
+    setIsValid(null); //Added to handle validation state
+    setAvailableModels([]); //Reset available models before new validation
+
     try {
       const response = await fetch('/api/validate-key', {
         method: 'POST',
@@ -38,17 +44,35 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
         },
         body: JSON.stringify({ apiKey }),
       });
-      
-      const result = await response.json();
-      setIsValid(result.valid);
-      
-      if (result.valid) {
-        onApiKeySet(apiKey);
-        // Close dialog after successful validation
-        setTimeout(() => setIsOpen(false), 1500);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Invalid API key");
       }
-    } catch (error) {
-      console.error('Error validating API key:', error);
+
+      setIsValid(true);
+      setAvailableModels(data.models || []);
+
+      // Also update the API key for the application (assuming /api/apikey endpoint exists)
+      const updateResponse = await fetch("/api/apikey", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ apiKey }),
+      });
+
+      if (!updateResponse.ok) {
+        console.error("Failed to set API key in application");
+        //Consider handling this failure more gracefully, perhaps by setting isValid to false
+      }
+
+      onApiKeySet(apiKey);
+      // Close dialog after successful validation
+      setTimeout(() => setIsOpen(false), 1500);
+    } catch (err) {
+      setError(err.message);
       setIsValid(false);
     } finally {
       setIsValidating(false);
@@ -85,9 +109,29 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
                 placeholder="Enter your Gemini API key"
               />
             </div>
+            {error && (
+              <div className="col-span-4 text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            {isValidating && (
+              <div className="col-span-4 text-sm text-blue-500">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Validating...
+              </div>
+            )}
             {isValid === true && (
-              <div className="col-span-4 text-sm text-green-500 flex items-center">
-                <Check className="h-4 w-4 mr-2" /> API key is valid
+              <div className="col-span-4 mt-2">
+                <p className="text-green-500 font-semibold">API Key Validated!</p>
+                {availableModels.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium">Available Models:</p>
+                    <ul className="mt-1 text-xs max-h-40 overflow-y-auto">
+                      {availableModels.map(model => (
+                        <li key={model} className="py-1">{model}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
             {isValid === false && (

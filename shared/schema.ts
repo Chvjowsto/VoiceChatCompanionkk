@@ -3,7 +3,16 @@ import { pgTable, text, serial, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const GEMINI_MODELS = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.5-pro-latest", "gemini-1.0-pro"] as const;
+export const GEMINI_MODELS = [
+  "gemini-1.5-pro", 
+  "gemini-1.5-flash", 
+  "gemini-1.5-pro-latest", 
+  "gemini-1.0-pro",
+  "gemini-1.0-pro-latest",
+  "gemini-1.0-pro-vision",
+  "gemini-1.0-pro-vision-latest",
+  "gemini-1.5-flash-latest"
+] as const;
 export type GeminiModel = typeof GEMINI_MODELS[number];
 
 export const messages = pgTable("messages", {
