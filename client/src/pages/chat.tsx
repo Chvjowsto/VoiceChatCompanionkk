@@ -8,71 +8,10 @@ import { Trash2 } from "lucide-react";
 import MessageList from "@/components/chat/message-list";
 import VoiceRecorder from "@/components/chat/voice-recorder";
 import { useToast } from "@/hooks/use-toast";
-import { ChatConfig, type ChatConfig as ChatConfigType } from '../components/chat/chat-config'; // Added import
-
-// Added ApiKeyDialog component - placeholder implementation
-const ApiKeyDialog = ({ onApiKeySet }) => {
-  const [apiKey, setApiKey] = useState("");
-  const [isValid, setIsValid] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleApiKeyChange = (e) => {
-    setApiKey(e.target.value);
-    setIsValid(false);
-    setError("");
-  };
-
-  const handleValidateApiKey = async () => {
-    try {
-      const response = await fetch("/api/validate-api-key", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ apiKey }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Invalid API key");
-      }
-
-      setIsValid(true);
-      onApiKeySet(apiKey);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  return (
-    <div>
-      <input
-        type="text"
-        value={apiKey}
-        onChange={handleApiKeyChange}
-        placeholder="Enter Gemini API Key"
-      />
-      <button onClick={handleValidateApiKey} disabled={!apiKey}>
-        Validate
-      </button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {isValid && <p>API Key Validated!</p>}
-    </div>
-  );
-};
-
 
 export default function Chat() {
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
-  const [showConfigDialog, setShowConfigDialog] = useState(false); // Added state
-  const [chatConfig, setChatConfig] = useState<ChatConfigType>({ // Added state
-    systemPrompt: "You are a helpful AI assistant. Answer questions accurately and be friendly.",
-    temperature: 0.7,
-    topK: 40,
-    topP: 0.95,
-    maxOutputTokens: 1024
-  });
 
   const { data: messages, isLoading } = useQuery({
     queryKey: ["/api/messages"],
@@ -98,8 +37,7 @@ export default function Chat() {
         content,
         role: "user",
         audioUrl: null,
-        context: null,
-        config: chatConfig // Added config
+        context: null
       });
       return response.json();
     },
@@ -136,57 +74,29 @@ export default function Chat() {
               <Trash2 className="h-4 w-4 mr-2" />
               Clear
             </Button>
-            <ApiKeyDialog 
-              onApiKeySet={(apiKey) => {
-                console.log("API key set successfully:", apiKey);
-                // Optionally refresh messages or update UI
-              }} 
-            />
           </div>
         </div>
       </header>
 
       {/* Main Content with modern styling */}
       <main className="flex-1 flex flex-col container max-w-screen-md mx-auto w-full p-4 md:p-6 gap-4">
-        {/* Voice Recorder with floating effect */}
-        <div className="w-full px-4 md:px-0 mb-4">
-          <VoiceRecorder
-            isRecording={isRecording}
-            setIsRecording={setIsRecording}
-            onRecordingStateChange={(isRecording) => {
-              // Handle recording state changes
-              console.log("Recording state changed:", isRecording);
-              setIsRecording(isRecording); // Update the state
-            }}
-            onTranscript={(text) => {
-              try {
-                sendMessage.mutate(text);
-              } catch (error) {
-                console.error("Error sending message:", error);
-                toast({
-                  title: "Failed to send message",
-                  description: "API might be rate limited. Try another model or wait a moment.",
-                  variant: "destructive",
-                });
-              }
-            }}
-            disabled={sendMessage.isPending}
-          />
-        </div>
-        
-        {/* Chat messages */}
-        <div className="flex-1 rounded-lg bg-background/40 backdrop-blur-sm p-4 md:p-6 pb-32 shadow-xl ring-1 ring-black/5 overflow-y-auto">
+        <div className="flex-1 rounded-lg bg-background/40 backdrop-blur-sm p-4 md:p-6 shadow-xl ring-1 ring-black/5">
           <MessageList 
             messages={messages || []} 
             isLoading={isLoading} 
           />
         </div>
+
+        {/* Voice Recorder with floating effect */}
+        <div className="sticky bottom-4 w-full px-4 md:px-0 animate-fade-up">
+          <VoiceRecorder
+            isRecording={isRecording}
+            setIsRecording={setIsRecording}
+            onTranscript={(text) => sendMessage.mutate(text)}
+            disabled={sendMessage.isPending}
+          />
+        </div>
       </main>
-      <ChatConfig
-        isOpen={showConfigDialog}
-        onClose={() => setShowConfigDialog(false)}
-        onConfigChange={setChatConfig}
-      /> {/* Added ChatConfig component */}
     </div>
   );
 }
