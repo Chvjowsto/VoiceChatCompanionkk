@@ -5,6 +5,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from "@/components/ui/select";
 import { GEMINI_MODELS } from "@shared/schema";
 
@@ -27,7 +29,7 @@ export default function ModelSelector({ value, onChange, onConfigClick, availabl
   const models = availableModels && availableModels.length > 0 
     ? availableModels 
     : GEMINI_MODELS;
-    
+
   // Helper to get model description
   const getModelDescription = (model: string) => {
     if (model.includes('flash')) return 'Fast responses, optimized for speed';
@@ -35,26 +37,38 @@ export default function ModelSelector({ value, onChange, onConfigClick, availabl
     if (model.includes('pro')) return 'Advanced capabilities, longer responses';
     return 'Google Gemini model';
   };
-  
+
   // Sort models to put the latest and most relevant first
   const sortedModels = [...models].sort((a, b) => {
     // Put models with 'latest' at the top
     if (a.includes('latest') && !b.includes('latest')) return -1;
     if (!a.includes('latest') && b.includes('latest')) return 1;
-    
+
     // Then sort by version (1.5 before 1.0)
     const versionA = a.match(/\d+\.\d+/)?.[0] || '0.0';
     const versionB = b.match(/\d+\.\d+/)?.[0] || '0.0';
     if (versionA !== versionB) {
       return parseFloat(versionB) - parseFloat(versionA);
     }
-    
+
     // Then prioritize pro over flash
     if (a.includes('pro') && !b.includes('pro')) return -1;
     if (!a.includes('pro') && b.includes('pro')) return 1;
-    
+
     return a.localeCompare(b);
   });
+
+  // Format model names for display
+  const formatModelName = (name: string) => {
+    // Get clean name without version suffix for display
+    const baseName = name.split('-').slice(0, 2).join('-');
+
+    // Check if it's a "latest" version
+    const isLatest = name.includes('latest');
+
+    // Add a star to latest versions for visibility
+    return `${baseName} ${isLatest ? '⭐' : ''}`;
+  };
 
   return (
     <div className="flex items-center space-x-2">
@@ -64,14 +78,17 @@ export default function ModelSelector({ value, onChange, onConfigClick, availabl
           <SelectValue placeholder="Select model" />
         </SelectTrigger>
         <SelectContent>
-          {sortedModels.map((model) => (
-            <SelectItem key={model} value={model} className="py-2">
-              <div>
-                <div className="font-medium">{model}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{getModelDescription(model)}</div>
-              </div>
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            <SelectLabel>Available Models</SelectLabel>
+            {sortedModels.map((model) => (
+              <SelectItem key={model} value={model} className="py-2">
+                <div>
+                  <div className="font-medium">{formatModelName(model)}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{getModelDescription(model)}</div>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <button 

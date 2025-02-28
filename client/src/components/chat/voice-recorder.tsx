@@ -220,15 +220,44 @@ export default function VoiceRecorder({
     e.preventDefault();
     if (text.trim()) {
       try {
+        const currentText = text;
         setText(""); // Clear input immediately for better UX
-        await sendMessage.mutateAsync({content: text, role: "user", model: selectedModel});
+        
+        // Pass model config if available
+        const config = chatConfig || {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024
+        };
+        
+        await sendMessage.mutateAsync({
+          content: currentText, 
+          role: "user", 
+          model: selectedModel,
+          config: config
+        });
       } catch (error) {
         console.error("Error sending message:", error);
-        toast({
-          title: "Error sending message",
-          description: "Failed to send message. API might be rate limited or try another model.",
-          variant: "destructive"
-        });
+        // Check if the error indicates rate limiting
+        const errorMessage = error.toString().toLowerCase();
+        const isRateLimited = errorMessage.includes("rate") || 
+                              errorMessage.includes("limit") || 
+                              errorMessage.includes("quota");
+        
+        if (isRateLimited) {
+          toast({
+            title: "API Rate Limited",
+            description: "Please try one of the other Gemini models or wait a moment",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error sending message",
+            description: "Failed to send message. Please check your API key or try again later.",
+            variant: "destructive"
+          });
+        }
       }
     }
   };

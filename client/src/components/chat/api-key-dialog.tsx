@@ -21,58 +21,53 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
   const [apiKey, setApiKey] = useState("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isValidating, setIsValidating] = useState(false);
-  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [apiKeyValid, setApiKeyValid] = useState(false); // Added state for API key validity
   const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
   const validateApiKey = async () => {
-    if (!apiKey.trim()) {
-      setError("API key cannot be empty");
-      return;
-    }
-
     setIsValidating(true);
-    setError("");
-    setIsValid(null); 
-    setAvailableModels([]); 
-
-    console.log("Validating API key:", apiKey.substring(0, 5) + "...");
-
     try {
+      // Basic format check before sending to server
+      if (!apiKey || apiKey.trim().length < 10) {
+        setError('API key appears too short or invalid');
+        setApiKeyValid(false);
+        setIsValidating(false);
+        return false;
+      }
+
       const response = await fetch('/api/validate-api-key', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey }),
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(10000)
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        console.error("API key validation failed:", data);
-        throw new Error(data.error || data.details || "Failed to validate API key");
-      }
-
-      setIsValid(true);
-
-      if (data.models && Array.isArray(data.models)) {
-        if (data.models.length > 0) {
-          console.log("Models received:", data.models);
+      if (response.ok && data.valid) {
+        if (data.models && Array.isArray(data.models)) {
           setAvailableModels(data.models);
-          localStorage.setItem('availableGeminiModels', JSON.stringify(data.models));
+          console.log("Available models updated:", data.models);
         } else {
-          console.warn("No models returned from API");
-          setError("No models were returned. Please try again or use a different API key.");
+          console.warn("No models returned from API, using defaults");
         }
+        setApiKeyValid(true);
+        setError('');
+        return true;
       } else {
-        console.warn("Invalid models data structure:", data);
-        setError("Received invalid model data. Please try again.");
+        // Log the specific error for debugging
+        console.error("API key validation failed:", data);
+        setError(data.error || 'Invalid API key. Check if it has proper permissions and quota.');
+        setApiKeyValid(false);
+        return false;
       }
     } catch (error) {
-      console.error("API key validation error:", error);
-      setError(error.message || "Failed to validate API key. Please check your internet connection and try again.");
-      setIsValid(false);
+      console.error('Failed to validate API key:', error);
+      setError('Failed to validate API key. Network error or server timeout.');
+      setApiKeyValid(false);
+      return false;
     } finally {
       setIsValidating(false);
     }
@@ -118,7 +113,7 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Validating...
               </div>
             )}
-            {isValid === true && (
+            {apiKeyValid === true && ( // Use apiKeyValid instead of isValid
               <div className="col-span-4 mt-2">
                 <p className="text-green-500 font-semibold">API Key Validated!</p>
                 {availableModels.length > 0 && (
@@ -133,7 +128,7 @@ export function ApiKeyDialog({ onApiKeySet }: ApiKeyDialogProps) {
                 )}
               </div>
             )}
-            {isValid === false && (
+            {apiKeyValid === false && ( // Use apiKeyValid instead of isValid
               <div className="col-span-4 text-sm text-red-500">
                 Invalid API key. Please check and try again.
               </div>
