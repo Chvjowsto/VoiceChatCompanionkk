@@ -2,12 +2,16 @@ import { pgTable, text, serial, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const GEMINI_MODELS = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro"] as const;
+export type GeminiModel = typeof GEMINI_MODELS[number];
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   audioUrl: text("audio_url"),
+  model: text("model", { enum: GEMINI_MODELS }).optional(), // Added model field
   context: jsonb("context").default({
     summary: "",
     relevantIds: [],
@@ -16,11 +20,12 @@ export const messages = pgTable("messages", {
   })
 });
 
-// Enhanced insert schema with context
+// Enhanced insert schema with context and model
 export const insertMessageSchema = createInsertSchema(messages).pick({
   content: true,
   role: true,
   audioUrl: true,
+  model: true, // Added model to insert schema
   context: true
 });
 

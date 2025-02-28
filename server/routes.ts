@@ -30,10 +30,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all messages for context
       const allMessages = await storage.getMessages();
 
-      // Build context for the new message
+      // Build context for the new message with selected model
+      const modelName = parsed.data.model || "gemini-1.5-pro";
       const context = await contextManager.buildMessageContext(
         parsed.data.content,
-        allMessages
+        allMessages,
+        modelName
       );
 
       // Add message with context
@@ -45,17 +47,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If it's a user message, generate AI response
       if (parsed.data.role === "user") {
         try {
-          // Send the message to Gemini
-          const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+          // Send the message to Gemini with the selected model or default
+          const modelName = parsed.data.model || "gemini-1.5-pro";
+          const model = genAI.getGenerativeModel({ model: modelName });
           const prompt = `Context: ${context.summary}\nCurrent topics: ${context.topics.join(", ")}\n\nUser message: ${parsed.data.content}`;
           const result = await model.generateContent(prompt);
           const response = await result.response;
           const responseText = response.text();
 
-          // Build context for the assistant's response
+          // Build context for the assistant's response using the same model
           const assistantContext = await contextManager.buildMessageContext(
             responseText,
-            [...allMessages, userMessage]
+            [...allMessages, userMessage],
+            modelName
           );
 
           // Save the assistant's response
@@ -63,6 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: responseText,
             role: "assistant",
             audioUrl: null,
+            model: modelName, // Store which model was used
             context: assistantContext
           });
 

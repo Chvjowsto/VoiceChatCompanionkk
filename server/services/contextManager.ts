@@ -12,14 +12,18 @@ export class ContextManager {
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
-  async summarizeContext(messages: Message[]): Promise<string> {
+  async summarizeContext(messages: Message[], preferredModel?: string): Promise<string> {
     if (messages.length === 0) return "";
 
     try {
       const prompt = `Summarize the following conversation in a concise way that captures the key points and context:
       ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`;
 
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      // Try to use the last model used in the conversation, or the preferred one, or fall back to default
+      const lastMessage = messages[messages.length - 1];
+      const modelName = preferredModel || lastMessage.model || "gemini-1.5-pro";
+      
+      const model = this.genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text();
@@ -29,7 +33,7 @@ export class ContextManager {
     }
   }
 
-  async getRelevantMessages(currentMessage: string, messages: Message[]): Promise<number[]> {
+  async getRelevantMessages(currentMessage: string, messages: Message[], preferredModel?: string): Promise<number[]> {
     if (messages.length === 0) return [];
 
     try {
@@ -37,7 +41,9 @@ export class ContextManager {
       Rate the relevance of each previous message (0-1):
       ${messages.map(m => `${m.id}: ${m.content}`).join('\n')}`;
 
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      // Try to use the preferred model or fall back to default
+      const modelName = preferredModel || "gemini-1.5-pro";
+      const model = this.genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const relevanceScores = this.parseRelevanceScores(response.text());
@@ -62,10 +68,11 @@ export class ContextManager {
     }
   }
 
-  async extractTopics(content: string): Promise<string[]> {
+  async extractTopics(content: string, preferredModel?: string): Promise<string[]> {
     try {
       const prompt = `Extract key topics from this message as a comma-separated list: "${content}"`;
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      const modelName = preferredModel || "gemini-1.5-pro";
+      const model = this.genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text().split(',').map(topic => topic.trim());
@@ -75,18 +82,29 @@ export class ContextManager {
     }
   }
 
-  async buildMessageContext(content: string, allMessages: Message[]): Promise<MessageContext> {
-    const relevantIds = await this.getRelevantMessages(content, allMessages);
-    const relevantMessages = allMessages.filter(m => relevantIds.includes(m.id));
-    const summary = await this.summarizeContext(relevantMessages);
-    const topics = await this.extractTopics(content);
+  async buildMessageContext(content: string, allMessages: Message[], preferredModel?: string): Promise<MessageContext> {
+    try {
+      const relevantIds = await this.getRelevantMessages(content, allMessages, preferredModel);
+      const relevantMessages = allMessages.filter(m => relevantIds.includes(m.id));
+      const summary = await this.summarizeContext(relevantMessages, preferredModel);
+      const topics = await this.extractTopics(content, preferredModel);
 
-    return {
-      summary,
-      relevantIds,
-      importance: 1,
-      topics
-    };
+      return {
+        summary,
+        relevantIds,
+        importance: 1,
+        topics
+      };
+    } catch (error) {
+      console.error("Error building message context:", error);
+      // Provide fallback context in case of API errors
+      return {
+        summary: "",
+        relevantIds: allMessages.slice(-3).map(m => m.id),
+        importance: 1,
+        topics: []
+      };
+    }
   }
 
   pruneContext(messages: Message[]): Message[] {
