@@ -45,22 +45,22 @@ export default function Chat() {
   });
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-screen-2xl items-center">
-          <div className="mr-4 flex">
-            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/95 flex flex-col">
+      {/* Header with frosted glass effect */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/60 backdrop-blur-lg supports-[backdrop-filter]:bg-background/30">
+        <div className="container flex h-16 max-w-screen-2xl items-center px-4">
+          <div className="mr-4 flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent animate-gradient">
               Voice Chat with Gemini
             </h1>
           </div>
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <div className="flex items-center gap-2">
             <Button
-              variant="destructive"
+              variant="ghost"
               size="sm"
               onClick={() => clearMutation.mutate()}
               disabled={clearMutation.isPending}
-              className="h-8"
+              className="h-9 px-4 hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Clear
@@ -69,17 +69,17 @@ export default function Chat() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content with modern styling */}
       <main className="flex-1 flex flex-col container max-w-screen-md mx-auto w-full p-4 md:p-6 gap-4">
-        <Card className="flex-1 p-4">
+        <div className="flex-1 rounded-lg bg-background/40 backdrop-blur-sm p-4 md:p-6 shadow-xl ring-1 ring-black/5">
           <MessageList 
             messages={messages || []} 
             isLoading={isLoading} 
           />
-        </Card>
+        </div>
 
-        {/* Voice Recorder - Fixed at bottom */}
-        <div className="sticky bottom-4 w-full px-4 md:px-0">
+        {/* Voice Recorder with floating effect */}
+        <div className="sticky bottom-4 w-full px-4 md:px-0 animate-fade-up">
           <VoiceRecorder
             isRecording={isRecording}
             setIsRecording={setIsRecording}
