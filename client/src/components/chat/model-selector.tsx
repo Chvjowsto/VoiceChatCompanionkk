@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Select,
@@ -12,10 +11,11 @@ import { GEMINI_MODELS } from "@shared/schema";
 interface ModelSelectorProps {
   value: string;
   onChange: (model: string) => void;
+  onConfigClick: () => void; // Added config click handler
   availableModels?: string[];
 }
 
-export default function ModelSelector({ value, onChange, availableModels }: ModelSelectorProps) {
+export default function ModelSelector({ value, onChange, onConfigClick, availableModels }: ModelSelectorProps) {
   const handleChange = (newModel: string) => {
     onChange(newModel);
   };
@@ -40,6 +40,9 @@ export default function ModelSelector({ value, onChange, availableModels }: Mode
           ))}
         </SelectContent>
       </Select>
+      <button onClick={onConfigClick} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+        Advanced Config
+      </button>
     </div>
   );
 }

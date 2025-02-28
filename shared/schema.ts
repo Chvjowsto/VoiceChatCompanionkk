@@ -27,6 +27,13 @@ export const messages = pgTable("messages", {
     relevantIds: [],
     importance: 1,
     topics: []
+  }),
+  config: jsonb("config").default({
+    systemPrompt: "You are a helpful AI assistant.",
+    temperature: 0.7,
+    topK: 40,
+    topP: 0.95,
+    maxOutputTokens: 1024
   })
 });
 
@@ -48,4 +55,12 @@ export interface MessageContext {
   relevantIds: number[];
   importance: number;
   topics: string[];
+}
+
+export interface ModelConfig {
+  systemPrompt?: string;
+  temperature?: number;
+  topK?: number;
+  topP?: number;
+  maxOutputTokens?: number;
 }

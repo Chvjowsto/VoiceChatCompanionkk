@@ -8,6 +8,7 @@ import { Trash2 } from "lucide-react";
 import MessageList from "@/components/chat/message-list";
 import VoiceRecorder from "@/components/chat/voice-recorder";
 import { useToast } from "@/hooks/use-toast";
+import { ChatConfig, type ChatConfig as ChatConfigType } from '../components/chat/chat-config'; // Added import
 
 // Added ApiKeyDialog component - placeholder implementation
 const ApiKeyDialog = ({ onApiKeySet }) => {
@@ -64,6 +65,14 @@ const ApiKeyDialog = ({ onApiKeySet }) => {
 export default function Chat() {
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
+  const [showConfigDialog, setShowConfigDialog] = useState(false); // Added state
+  const [chatConfig, setChatConfig] = useState<ChatConfigType>({ // Added state
+    systemPrompt: "You are a helpful AI assistant. Answer questions accurately and be friendly.",
+    temperature: 0.7,
+    topK: 40,
+    topP: 0.95,
+    maxOutputTokens: 1024
+  });
 
   const { data: messages, isLoading } = useQuery({
     queryKey: ["/api/messages"],
@@ -89,7 +98,8 @@ export default function Chat() {
         content,
         role: "user",
         audioUrl: null,
-        context: null
+        context: null,
+        config: chatConfig // Added config
       });
       return response.json();
     },
@@ -160,6 +170,11 @@ export default function Chat() {
           />
         </div>
       </main>
+      <ChatConfig
+        isOpen={showConfigDialog}
+        onClose={() => setShowConfigDialog(false)}
+        onConfigChange={setChatConfig}
+      /> {/* Added ChatConfig component */}
     </div>
   );
 }
