@@ -13,7 +13,7 @@ export function initializeGemini(apiKey: string = process.env.GEMINI_API_KEY || 
 
   try {
     genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     chat = null; // Reset chat session
   } catch (error) {
     console.error("Failed to initialize Gemini:", error);

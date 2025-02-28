@@ -111,5 +111,6 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
       ))}
     </div>
     </TooltipProvider>
+    </TooltipProvider>
   );
 }
