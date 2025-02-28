@@ -1,10 +1,15 @@
 import { type Message } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlayCircle } from "lucide-react";
+import { PlayCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { speak } from "@/lib/speech";
 import { motion } from "framer-motion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MessageListProps {
   messages: Message[];
@@ -59,8 +64,29 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
             >
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium mb-1 opacity-75">
-                    {message.role === "assistant" ? "Gemini" : "You"}
+                  <div className="flex items-center gap-2 text-sm font-medium mb-1 opacity-75">
+                    <span>{message.role === "assistant" ? "Gemini" : "You"}</span>
+                    {message.context && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 hover:bg-background/10"
+                          >
+                            <Info className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="space-y-1 text-xs">
+                            <p className="font-medium">Context Summary:</p>
+                            <p>{message.context.summary || "No summary available"}</p>
+                            <p className="font-medium mt-2">Topics:</p>
+                            <p>{message.context.topics?.join(", ") || "No topics"}</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
                   <div className="text-sm leading-relaxed break-words">
                     {message.content}

@@ -8,9 +8,15 @@ export const messages = pgTable("messages", {
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   audioUrl: text("audio_url"),
-  context: jsonb("context")
+  context: jsonb("context").default({
+    summary: "",
+    relevantIds: [],
+    importance: 1,
+    topics: []
+  })
 });
 
+// Enhanced insert schema with context
 export const insertMessageSchema = createInsertSchema(messages).pick({
   content: true,
   role: true,
@@ -20,3 +26,11 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+
+// Define context structure for type safety
+export interface MessageContext {
+  summary?: string;
+  relevantIds: number[];
+  importance: number;
+  topics: string[];
+}
