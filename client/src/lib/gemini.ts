@@ -19,7 +19,7 @@ export function startNewChat(history: Message[] = []) {
   // Convert our Message type to Gemini's chat history format
   const formattedHistory = history.map(msg => ({
     role: msg.role,
-    parts: msg.content
+    parts: [{ text: msg.content }]
   }));
 
   chat = model.startChat({
@@ -41,7 +41,7 @@ export async function sendMessage(message: string): Promise<string> {
   }
 
   try {
-    const result = await chat.sendMessage(message);
+    const result = await chat.sendMessage([{ text: message }]);
     const response = await result.response;
     return response.text();
   } catch (error) {

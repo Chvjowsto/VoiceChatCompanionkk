@@ -25,14 +25,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chat = model.startChat({
         history: (await storage.getMessages()).map(m => ({
           role: m.role,
-          parts: m.content
+          parts: [{ text: m.content }]
         }))
       });
-      
-      const result = await chat.sendMessage(parsed.data.content);
+
+      const result = await chat.sendMessage([{ text: parsed.data.content }]);
       const response = await result.response;
       const responseText = response.text();
-      
+
       await storage.addMessage({
         content: responseText,
         role: "assistant",
