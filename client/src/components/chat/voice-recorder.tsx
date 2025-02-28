@@ -1,5 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+
+// Add speech recognition typing
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 import { Button } from '@/components/ui/button';
 import { Mic, Send, Square } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +16,15 @@ import { useToast } from '@/hooks/use-toast';
 import ModelSelector from './model-selector';
 import { type GeminiModel, GEMINI_MODELS } from '@shared/schema';
 
-export default function VoiceRecorder({ onRecordingStateChange }: { onRecordingStateChange: (isRecording: boolean) => void }) {
+export default function VoiceRecorder({ 
+  onRecordingStateChange, 
+  onTranscript,
+  disabled
+}: { 
+  onRecordingStateChange: (isRecording: boolean) => void,
+  onTranscript?: (text: string) => void,
+  disabled?: boolean
+}) {
   const [isRecording, setIsRecording] = useState(false);
   const [text, setText] = useState('');
   const [selectedModel, setSelectedModel] = useState<GeminiModel>("gemini-1.5-pro");
@@ -31,10 +47,49 @@ export default function VoiceRecorder({ onRecordingStateChange }: { onRecordingS
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        // For now, we'll just transcribe on the client side
-        // In a real app, you might want to send this to a server
-        // const audioUrl = URL.createObjectURL(audioBlob);
-        // Handle the audio file
+        
+        try {
+          // Use the Web Speech API for transcription
+          const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+          recognition.lang = 'en-US';
+          
+          recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            if (transcript.trim()) {
+              setText(transcript);
+              // Automatically send the message
+              sendMessage.mutate({
+                content: transcript,
+                role: "user",
+                model: selectedModel
+              });
+            }
+          };
+          
+          recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            toast({
+              title: 'Transcription Error',
+              description: 'Could not transcribe audio. Please try again or type your message.',
+              variant: 'destructive',
+            });
+          };
+          
+          // Start recognition with the recorded audio
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audio.onended = () => recognition.stop();
+          
+          recognition.start();
+          audio.play();
+        } catch (error) {
+          console.error('Transcription error:', error);
+          toast({
+            title: 'Error',
+            description: 'Speech recognition not supported in this browser. Please type your message.',
+            variant: 'destructive',
+          });
+        }
       };
 
       mediaRecorder.start();
@@ -52,10 +107,19 @@ export default function VoiceRecorder({ onRecordingStateChange }: { onRecordingS
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      // First update UI to show stopped state
       setIsRecording(false);
       onRecordingStateChange(false);
+      
+      // Then stop recording - this will trigger the onstop event
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      
+      // Show loading indicator 
+      toast({
+        title: 'Processing',
+        description: 'Transcribing your message...',
+      });
     }
   };
 
